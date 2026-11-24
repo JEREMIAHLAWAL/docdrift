@@ -19,7 +19,7 @@
  * that acts for a user in the background (e.g. a cron job) uses
  * `callComposio(env, ..., { asUser })` from 'deepspace/worker' instead.
  *
- * DocDrift change: the browser proxy (/api/integrations/*) refuses every
+ * App change: the browser proxy (/api/integrations/*) refuses every
  * 'developer'-billed integration unless it is marked `browser: true`. The
  * scaffold default let ANY signed-in visitor spend the owner's credits on any
  * catalog endpoint with any body. The demo's paid integrations are reachable
@@ -33,7 +33,6 @@ export const integrations: Record<
   google: { billing: 'user' },
   composio: { billing: 'user' },
   github: { billing: 'developer' },
-  firecrawl: { billing: 'developer' },
   cloudflare: { billing: 'developer' },
   'latex-compiler': { billing: 'developer' },
 }

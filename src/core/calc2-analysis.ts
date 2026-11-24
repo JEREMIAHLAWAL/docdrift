@@ -7,8 +7,7 @@
 
 import { calc2, calc2Policies, type Calc2Review } from './calc2-content'
 import { buildCalc2JevRequest, parseCalc2JevResponse, type Calc2JevLabel } from './calc2-jev'
-import { decodeGithubFile } from './extract'
-import type { CallIntegration } from './refresh'
+import { decodeGithubFile, type CallIntegration } from './integration'
 
 /** Commit 60c2689 published calc2-demo.v1.json; the blob SHA pins its exact bytes. */
 export const CALC2_SAMPLE_SOURCE = {

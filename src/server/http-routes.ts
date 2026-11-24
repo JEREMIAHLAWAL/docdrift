@@ -237,7 +237,7 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
     // identifiers only, and own keys only for the config.
     const target = integrationPath(integrationName, c.req.param('endpoint'))
     if (!target) return c.json({ error: 'Unknown integration' }, 404)
-    // DocDrift: owner-billed integrations are server-action-only by default.
+    // App change: owner-billed integrations are server-action-only by default.
     if (!browserProxyAllowed(integrationName)) {
       return c.json({ error: 'This integration is only available through server actions' }, 403)
     }
