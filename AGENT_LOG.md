@@ -133,7 +133,42 @@ Times are ET.
 - Completed the DeepSpace sign-in in the preview pane himself. The
   pane then showed "Session expired". That is expected once the CLI has
   claimed the one-time link; whoami confirmed the session.
+- Approved the Git Credential Manager GitHub sign-in so `git push` could run.
+
+### Agent did (deploy)
+
+- Pushed `1456955` and `c002c57` to `origin/main`.
+- First deploy, `npx deepspace deploy --json`:
+  - `ok: true`, `url: https://docdrift.app.space`.
+  - `serving` and `dataPlane` both `confirmed`.
+  - Release `rel_01M85Y81PRR7N8AT6WXDAQ0YTB`.
+  - `source: {provider: github, repository: jeremiahlawal/docdrift}`, so
+    GitHub is now the app's source.
+  - The JSON also said `"dirty": true`. My own stderr capture file
+    (`deploy.err.log`) was in the working tree during the deploy; it was
+    deleted right after. It isn't a source file and isn't in the 17 uploaded
+    assets. Later deploys run from a clean tree.
+- Hosted checks with curl:
+  - `/` and `/home` return 200.
+  - The landing `<title>` is "docdrift | Legacy docs vs React 19 evidence".
+  - A signed-out `POST /api/integrations/firecrawl/scrape` returns 403
+    "This integration is only available through server actions", confirming
+    the proxy lock is deployed.
+  - A signed-out `POST /api/actions/refreshEvidence` returns `Unauthorized`.
+- Clean signed-out browser (a separate browser session with no cookies):
+  `/home` renders the case header and the empty state ("No evidence has been
+  captured yet…"). The RecordRoom anonymous read works; no error banner.
+- The preview-pane page bridge stopped answering
+  during this check, so the clean-browser check ran in the separate session.
 
 ### Jeremiah verified
 
 - *(none yet)*
+
+### Not yet verified by anyone
+
+- Real provider output for `github/get-repository-contents`,
+  `firecrawl/scrape` and `cloudflare/jev`. Paid calls are waiting for
+  Jeremiah's budget approval.
+- Hosted owner refresh and save.
+- Hosted signed-out view of a real snapshot.
