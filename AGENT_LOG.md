@@ -134,6 +134,11 @@ Times are ET.
   pane then showed "Session expired". That is expected once the CLI has
   claimed the one-time link; whoami confirmed the session.
 - Approved the Git Credential Manager GitHub sign-in so `git push` could run.
+- **Decisions (11:50 p.m.):**
+  - Approved a **$0.50 cap** for paid provider calls across the whole build
+    (probes, owner refreshes, hosted verification). Spent so far: $0.
+  - Agreed to stop for the night and do the provider probes in the
+    Tue 2–3:15 p.m. slot.
 
 ### Agent did (deploy)
 
