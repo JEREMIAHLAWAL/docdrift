@@ -100,3 +100,40 @@ Times are ET.
 - Hosted deploy.
 - Hosted owner refresh.
 - Hosted signed-out review.
+
+---
+
+## Session 1, continued — Mon 2026-11-23, ~11:30 p.m.
+
+### Agent did
+
+- At Jeremiah's instruction ("create it"), opened `github.com/new` in the
+  Hermes preview pane and created the **public, empty** repo
+  `JEREMIAHLAWAL/docdrift` (no README, .gitignore or license). The GitHub API
+  confirmed `visibility: public`, `size: 0`, `default_branch: main`.
+- Added `origin` before any registration or deploy, so the first deploy
+  makes GitHub the app's source.
+- Ran `npx deepspace auth login` in a PTY (it refuses a non-interactive
+  shell) and opened the one-time login URL in the preview pane.
+  `auth whoami` reports Jeremiah Lawal, a developer account.
+- `npx deepspace app init --json` → registered
+  `app_01M85XM7VVNC0GXMQVEC7AXT2V`. The CLI made the first commit (`1456955`,
+  101 files, author Jeremiah Lawal <lawaltise@gmail.com>).
+  - Checked the tracked files for secrets: no `.dev.vars`, `.env` or
+    `node_modules`, and no token-shaped strings.
+- Real checks with the registered ID:
+  - `npm run build`: passed.
+  - `npx vitest run`: 58/58 passed.
+  - `npm run test` (Playwright smoke + API): 8/8 passed on the second run.
+    The first run timed out after 60 s while the Vite dev server ran its
+    cold dependency scan; only the cache state changed between runs.
+
+### Jeremiah changed or corrected
+
+- Completed the DeepSpace sign-in in the preview pane himself. The
+  pane then showed "Session expired". That is expected once the CLI has
+  claimed the one-time link; whoami confirmed the session.
+
+### Jeremiah verified
+
+- *(none yet)*
