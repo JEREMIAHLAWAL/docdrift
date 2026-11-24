@@ -22,8 +22,8 @@
  * DocDrift change: the browser proxy (/api/integrations/*) refuses every
  * 'developer'-billed integration unless it is marked `browser: true`. The
  * scaffold default let ANY signed-in visitor spend the owner's credits on any
- * catalog endpoint with any body. DocDrift's three integrations are reachable
- * only through the owner-gated `refreshEvidence` server action.
+ * catalog endpoint with any body. The demo's paid integrations are reachable
+ * only through owner-gated server actions.
  */
 
 export const integrations: Record<
@@ -35,6 +35,7 @@ export const integrations: Record<
   github: { billing: 'developer' },
   firecrawl: { billing: 'developer' },
   cloudflare: { billing: 'developer' },
+  'latex-compiler': { billing: 'developer' },
 }
 
 /** Whether the browser proxy may forward this integration at all. */

@@ -1,0 +1,14 @@
+{
+  "version": "calc2-harmonic-v1",
+  "title": "Exam Question Review",
+  "objective": "Distinguish a necessary condition for series convergence from a sufficient one, and justify the distinction.",
+  "questionA": "Does the harmonic series ∑ 1/n (from n = 1 to ∞) converge or diverge? Justify your answer.",
+  "questionB": {
+    "stem": "A student claims the harmonic series converges because 1/n → 0. Group the terms after the first into blocks ending at 2, 4, 8, ….",
+    "parts": [
+      { "label": "a", "points": 2, "prompt": "Explain the flaw in the student’s claim.", "credit": "1 point: terms tending to zero is necessary for convergence. 1 point: it is not sufficient; a zero limit alone does not establish convergence." },
+      { "label": "b", "points": 3, "prompt": "Using the given grouping, explain why each block contributes at least 1/2.", "credit": "1 point: block k (k ≥ 1) contains 2^(k−1) terms, ending at index 2^k. 1 point: each term is at least 1/2^k. 1 point: multiplying gives a block sum of at least 1/2. An equivalent general bound earns credit; no credit is required for inventing the grouping." },
+      { "label": "c", "points": 1, "prompt": "Explain what this implies about the partial sums and whether the series converges.", "credit": "1 point: the partial sums at block endpoints grow without bound because each added block contributes at least 1/2, so the series diverges." }
+    ]
+  }
+}

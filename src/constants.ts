@@ -1,5 +1,7 @@
-/** App name — replaced by the CLI during scaffolding */
-export const APP_NAME = 'docdrift'
+import { calc2 } from './core/calc2-content'
+
+/** Public display name; the repo, app id, and hosted URL do not change. */
+export const APP_NAME = calc2.title
 
 /** Immutable app identity — data scope keys to this, so renames never
  *  strand your records.

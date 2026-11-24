@@ -9,6 +9,7 @@
 
 import type { ActionHandler, ActionTools } from 'deepspace/worker'
 import type { Env } from '../../worker'
+import { exportCalc2Review, getCalc2Review, saveCalc2Review } from './calc2-actions'
 import { CASE_ID } from '../core/case'
 import { authorizeRefresh, runRefresh, validateReview, type CallIntegration } from '../core/refresh'
 
@@ -105,4 +106,4 @@ export const saveReview: ActionHandler<OwnerEnv> = async ({ userId, params, tool
   )
 }
 
-export const actions: Record<string, ActionHandler<Env>> = { refreshEvidence, saveReview }
+export const actions: Record<string, ActionHandler<Env>> = { refreshEvidence, saveReview, getCalc2Review, saveCalc2Review, exportCalc2Review }

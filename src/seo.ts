@@ -25,8 +25,8 @@ import { APP_NAME } from './constants'
 declare const __DEEPSPACE_SITE_ORIGIN__: string | undefined
 
 export const seo = {
-  title: `${APP_NAME} | Legacy docs vs React 19 evidence`,
-  description: `${APP_NAME} compares a pinned legacy ReactDOM.render instruction with the React 19 Upgrade Guide and keeps the human decision separate.`,
+  title: `${APP_NAME} | Calculus II demo`,
+  description: 'Compare two original Calculus II questions, then review what each asks students to show about the harmonic series.',
   /** Public origin for canonical URLs, og:url, and the sitemap — no trailing
    *  slash. Replace with the custom domain once one is attached, e.g.
    *  'https://www.example.com'. */

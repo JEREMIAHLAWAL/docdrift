@@ -11,6 +11,7 @@ import type { CollectionSchema } from 'deepspace/schema'
 import { usersSchema } from './schemas/users-schema'
 import { settingsSchema } from './schemas/admin-schema'
 import { attemptsSchema, reviewsSchema, snapshotsSchema } from './schemas/docdrift-schema'
+import { calc2PdfAttemptsSchema, calc2ReviewsSchema } from './schemas/calc2-schema'
 
 export const schemas: CollectionSchema[] = [
   usersSchema,
@@ -18,4 +19,6 @@ export const schemas: CollectionSchema[] = [
   snapshotsSchema,
   attemptsSchema,
   reviewsSchema,
+  calc2ReviewsSchema,
+  calc2PdfAttemptsSchema,
 ]

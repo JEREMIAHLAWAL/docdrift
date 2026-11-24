@@ -260,3 +260,98 @@ Times are ET.
 - Hosted owner refresh and save; that `probabilities` round-trips through
   the `json` column.
 - Hosted signed-out view of a real snapshot.
+
+---
+
+## Session 3 — Tue 2026-11-24, Calc II pivot kickoff
+
+### Agent did
+
+- Read the approved direction in the private handoff and confirmed a clean
+  `main` at `b5382a6` before any changes. Reusing the existing app.
+- Proposed an original direct harmonic-series question (A) and a question
+  requiring students to explain the zero-term-limit error via a block bound
+  (B). Walked through objective fit, evidence of reasoning, permitted tool
+  contribution, and effort versus assessment value under both policies. A
+  full-credit answer to B needs both the logical distinction and the bound.
+- **LaTeX compiler gate passed.** Checked live usage first. Installed CLI
+  `0.44.2` catalog listed `latex-compiler/compile` at $0.0065 per request.
+  Made one paid call with `{compiler: "pdflatex", document: ...}` and no real
+  exam material. It returned `data.compiled: true`, `data.contentType:
+  "application/pdf"`, and `data.pdfBase64`. Strictly decoded 109,001 bytes,
+  checked the PDF signature and trailer, extracted the sample text, and
+  rendered the single PDF page. This was a CLI probe, not a saved review or
+  a hosted export. Probe files stayed out of Git. No Firecrawl retry.
+- Re-read DeepSpace usage: exactly one compiler call at $0.0065. Itemized
+  provider usage across the build is $0.00914408677; total account usage is
+  $0.00917200477 including the pre-project baseline, under the $0.50 cap.
+- Added the versioned Calc II sample, a shared renderer for the question and
+  rubric, and a LaTeX request builder. The layout, title, and landing now
+  show the Calc II draft locally. Verified `/home` signed out in the Hermes
+  preview, including expanding the rubric and reading each row. Type-check,
+  all 62 unit tests, lint, and production build passed. The first Playwright
+  run timed out during server startup; the second was stopped at Jeremiah’s
+  request. Neither counts as a browser suite pass.
+- The approved version compiled on one retry after a billed D1 overload.
+  Decoded, rendered, and checked the one-page PDF with the 6 total and 2/3/1
+  labels. The recommendation is explicitly an example, not an in-app export.
+  Usage after the retry: $0.02214408677 itemized, $0.02217200477 account total
+  including baseline. No deploy. Policy comparison, owner save/export, and
+  live Calc II GitHub/Jev remain open.
+
+### Jeremiah changed or corrected
+
+- Approved the revised Question B in `HANDOFF.md`: give the grouping, ask
+  students to explain it, and show the 6-point total and 2/3/1 split.
+
+### Jeremiah verified
+
+- Confirmed in the local preview that Question B(b) and its rubric ask
+  students to justify the bound, not invent the grouping.
+- Signed in as owner and saw the TA recommendation panel; confirmed the
+  saved `Assign B` and reason survived reload, then opened the downloaded
+  PDF and confirmed it contained the saved recommendation and reason.
+  These are local checks. Hosted behavior has not been verified.
+
+### Policy preview increment
+
+- Added a signed-out tool-policy switch with a local, hand-authored analysis.
+  The calculator exam suggests Assign B; the AI-allowed take-home suggests
+  Revise B if assessing individual reasoning. The comparison explains what
+  each question assesses, what tools can do, and the effort tradeoff.
+- The new Playwright test failed before the UI was added and passed after.
+  All 10 smoke/API tests passed using the running local dev server via an
+  ignored Playwright config (the standard webServer bootstrap timed out).
+  The policy test switched both ways and observed no action or integration
+  requests. No paid calls or deploy in this increment. Jev and owner save/PDF
+  export are not wired into this view yet.
+
+### Owner save/export increment
+
+- Wired private per-policy recommendations into the existing action and record
+  layers. Save reads back the stored reason. Export compiles that stored
+  recommendation rather than the draft, requires owner identity and explicit
+  billing confirmation, records an attempt before invoking the compiler, and
+  waits one minute between attempts. No caller-supplied LaTeX goes to the compiler.
+- Seven new action tests passed (provider double); 69 total unit tests, 11
+  Playwright smoke/API checks, type-check, lint, and build passed. Signed-out
+  action requests returned 401 and the compiler proxy returned 403.
+- Jeremiah confirmed that the saved `Assign B` and reason reappeared after
+  reloading. Read back both fields in the signed-in preview. Triggered one
+  local browser export; the app displayed `PDF generated from your saved
+  recommendation.` and live usage confirmed one $0.0065 compiler charge
+  ($0.02868681077 total account usage including baseline, below $0.50).
+  Jeremiah opened the downloaded PDF and confirmed it contained the saved
+  recommendation and reason. This verifies the local browser flow, not a
+  hosted export. No deploy.
+  Jeremiah prioritized the working hosted flow over polishing demo
+  explanations; policy copy was not separately signed off.
+
+### Calc II Jev probe
+
+- Ran the live Jev CLI call using the approved versioned sample, take-home
+  policy, and `buildCalc2JevRequest`. Validated the response: `revise_b`,
+  model `jev-1.13.0`. Live account spend increased by $0.00005027841 to
+  $0.02873708918, below the $0.50 cap. This is one policy in a CLI probe,
+  not a live comparison in the app. GitHub sample fetch needs the versioned
+  file published on the existing repo. Neither integration is wired yet.

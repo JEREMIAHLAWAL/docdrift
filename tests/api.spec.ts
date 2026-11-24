@@ -15,4 +15,13 @@ test.describe('API tests', () => {
     await page.waitForSelector('[data-testid="app-navigation"]', { timeout: 15000 })
     // If the app loaded and connected, the WS endpoint works
   })
+
+  test('signed-out callers cannot read, save, export, or invoke the compiler proxy', async ({ request }) => {
+    for (const name of ['getCalc2Review', 'saveCalc2Review', 'exportCalc2Review']) {
+      const res = await request.post(`/api/actions/${name}`, { data: { policy: 'exam', confirmBilling: true } })
+      expect(res.status()).toBe(401)
+    }
+    const res = await request.post('/api/integrations/latex-compiler/compile', { data: {} })
+    expect(res.status()).toBe(403)
+  })
 })

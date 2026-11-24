@@ -31,18 +31,17 @@ export default function Landing() {
       >
         <p className="mb-3 text-sm uppercase tracking-widest text-muted-foreground">{APP_NAME}</p>
         <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          Does an old docs instruction still hold?
+          Which Calc II question is worth assigning?
         </h1>
         <p className="mb-8 max-w-md text-muted-foreground">
-          DocDrift puts a pinned legacy React instruction next to the React 19 Upgrade
-          Guide, shows a model suggestion about how they relate, and leaves the decision
-          to a person. One case, real sources, dated evidence.
+          Compare two original harmonic-series questions against one learning objective.
+          See what students must explain and how the work is scored.
         </p>
         <Link
           to="/home"
           className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
-          Open the ReactDOM.render case
+          Open the Calc II demo
         </Link>
       </div>
     </>

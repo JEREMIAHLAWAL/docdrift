@@ -57,6 +57,37 @@ test.describe('Smoke tests', () => {
     await expect(page.getByTestId('app-navigation')).toBeVisible({ timeout: 15000 })
   })
 
+  test('approved Calc II question and rubric are visible without signing in', async ({ page }) => {
+    await page.goto('/home')
+    await expect(page.getByRole('heading', { name: 'Exam Question Review' })).toBeVisible()
+    const question = page.getByRole('article').filter({ hasText: 'Question B: Explain the error' })
+    await expect(question.getByText('6 points total', { exact: true })).toBeVisible()
+    await expect(question.getByText('(b) 3 points:', { exact: true })).toBeVisible()
+    await page.getByText('Question B scoring rubric', { exact: true }).click()
+    await expect(page.getByText(/An equivalent general bound earns credit/)).toBeVisible()
+  })
+
+  test('the signed-out policy switch changes the recommendation without requesting a paid action', async ({ page }) => {
+    const requests: string[] = []
+    page.on('request', (request) => {
+      const path = new URL(request.url()).pathname
+      if (/^\/api\/(actions|integrations)(\/|$)/.test(path)) requests.push(path)
+    })
+    await page.goto('/home')
+    const comparison = page.getByRole('region', { name: 'Review comparison' })
+    await expect(comparison.getByText('Assign B', { exact: true })).toBeVisible()
+    await expect(comparison.getByText(/calculator can illustrate/i)).toBeVisible()
+    await page.getByRole('radio', { name: 'AI-allowed take-home', exact: true }).check()
+    await expect(comparison.getByText('Revise B', { exact: true })).toBeVisible()
+    await expect(comparison.getByText(/AI can generate the full proof/i)).toBeVisible()
+    await expect(comparison.getByText('Assign B', { exact: true })).toHaveCount(0)
+    await page.getByRole('radio', { name: 'Calculator-allowed exam', exact: true }).check()
+    await expect(comparison.getByText('Assign B', { exact: true })).toBeVisible()
+    expect(requests).toEqual([])
+    await expect(page.getByRole('button', { name: 'Save recommendation' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Export saved PDF' })).toHaveCount(0)
+  })
+
   test('sign-in button visible when logged out', async ({ page }) => {
     await page.goto('/home')
     await expect(page.getByTestId('nav-sign-in-button')).toBeVisible({ timeout: 15000 })
