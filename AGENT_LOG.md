@@ -390,3 +390,43 @@ Times are ET.
   Total account usage is now $0.03138736759, below the $0.50 cap. This is
   the local app, not yet the hosted URL.
 
+### Agent did (hosted deploy)
+
+- `npx deepspace deploy --json` from a clean tree (`1be42a2`): `ok: true`,
+  serving and dataPlane `confirmed`, release
+  `rel_01M87GJKCF7ZT0T212342CR2AC`, source GitHub, `dirty: false`. Uploaded
+  18 client assets; `.assetsignore` excludes `.dev.vars` and
+  `/.dev.vars` returns 404.
+- Hosted curl: `/` and `/home` return 200; title is
+  "Exam Question Review | Calculus II demo". Signed-out POSTs to all five
+  Calc II actions return 401; the LaTeX, GitHub and Jev integration proxies
+  return 403. No error logs.
+- The same 11 Playwright smoke/API checks passed against
+  `https://docdrift.app.space` (ignored `.deepspace/hosted-playwright.config.ts`).
+  Live usage unchanged at $0.03138736759.
+
+### Jeremiah verified
+
+- Hosted, signed out, in the Hermes preview: switching from the
+  calculator-allowed exam to the AI-allowed take-home changed the suggestion
+  from Assign B to Revise B. No owner panels were shown, nothing was saved,
+  and nothing was billed.
+- Hosted, signed in: saved a recommendation, reloaded and saw it again,
+  exported the PDF, and opened the downloaded file; it matched the saved
+  recommendation. Logs show one `exportCalc2Review` call by the owner.
+  Live usage: one $0.0065 LaTeX charge; total account usage is now
+  $0.03788736759 including baseline, below $0.50.
+
+### Not yet verified by anyone
+
+- The GitHub + Jev comparison on the hosted URL. The code is deployed but
+  was only run in the local app.
+
+### Agent did (docs)
+
+- Wrote `README.md` for Exam Question Review: what each role can do and what
+  it costs, architecture, integration status, guards, the verification
+  table, scope decisions, and known gaps (including the leftover DocDrift
+  prototype code). Git secret scan of tracked files found no tokens;
+  `.dev.vars`, `dist` and `.deepspace` are git-ignored.
+
