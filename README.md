@@ -62,8 +62,8 @@ SQLite-backed RecordRooms.
 
 | Integration | Job | Status |
 |---|---|---|
-| `github/get-repository-contents` | Fetches `calc2-demo.v1.json` from this public repo at commit `60c2689`. The server requires blob `88f3771` and content identical to the sample the UI renders, so Jev judges exactly what the TA sees. On a mismatch it stops before calling Jev. | Verified in the local app |
-| `cloudflare/jev` | Gets a typed recommendation for the fetched sample under the selected policy. Out-of-set answers are rejected. | Verified in the local app (`revise_b`, `jev-1.13.0`, AI take-home). Deployed, not yet run on the live site. |
+| `github/get-repository-contents` | Fetches `calc2-demo.v1.json` from this public repo at commit `60c2689`. The server requires blob `88f3771` and content identical to the sample the UI renders, so Jev judges exactly what the TA sees. On a mismatch it stops before calling Jev. | Verified locally and on the live site |
+| `cloudflare/jev` | Gets a typed recommendation for the fetched sample under the selected policy. Out-of-set answers are rejected. | Verified locally (`revise_b`, `jev-1.13.0`, AI take-home) and on the live site |
 | `latex-compiler/compile` | Compiles the saved recommendation into a PDF. No caller-supplied LaTeX reaches the compiler. | Verified on the live site |
 
 ### Billing and access guards
@@ -95,10 +95,10 @@ himself; details are in [`AGENT_LOG.md`](AGENT_LOG.md).
 | Live site, signed out: policy switch changes the suggestion, nothing saved or billed | Jeremiah verified |
 | Live site, signed in: save → reload → export → open the downloaded PDF, which contains the saved recommendation | Jeremiah verified |
 | Local app, signed in: GitHub fetch + Jev comparison shows `Revise B`, fetched at commit `60c2689`, and persists after reload | Jeremiah verified |
-| Live site: GitHub + Jev comparison | **Not run.** Same code is deployed; not exercised at the URL. |
+| Live site, signed in: GitHub fetch + Jev comparison | Jeremiah verified (one run; logs and usage show one GitHub and one Jev charge) |
 
 Total account usage, including the pre-project baseline and the React
-prototype probes, is **$0.0379**, under the $0.50 budget.
+prototype probes, is **$0.0406**, under the $0.50 budget.
 
 ## Scope decisions
 
@@ -119,8 +119,6 @@ prototype probes, is **$0.0379**, under the $0.50 budget.
 
 ## Known gaps and history
 
-- **Jev on the live site:** verified in the local app and deployed, but not
-  run at docdrift.app.space.
 - **Prototype code still in the repo:** this repo started as **DocDrift**, a
   React-documentation drift checker. Its owner-only `refreshEvidence` and
   `saveReview` actions and `src/core/{case,extract,classify,refresh,view}.ts`
@@ -133,7 +131,7 @@ prototype probes, is **$0.0379**, under the $0.50 budget.
   policies; there is no model call in the free preview.
 - **Single owner.** Recommendations are private to the app owner, one per
   policy. There are no team accounts.
-- **Next steps:** run the comparison on the live site; let the TA choose
+- **Next steps:** let the TA choose
   among saved model results; support additional original question pairs from
   versioned files.
 

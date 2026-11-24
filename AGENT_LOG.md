@@ -417,10 +417,14 @@ Times are ET.
   Live usage: one $0.0065 LaTeX charge; total account usage is now
   $0.03788736759 including baseline, below $0.50.
 
-### Not yet verified by anyone
+### Jeremiah verified (hosted Jev, ~3:20 p.m.)
 
-- The GitHub + Jev comparison on the hosted URL. The code is deployed but
-  was only run in the local app.
+- Hosted, signed in: ran one GitHub + Jev comparison. He reported it worked
+  as expected. Logs show one owner `analyzeCalc2` call returning 200, with no
+  warn or error logs. Usage shows one GitHub charge ($0.0026) and one Jev
+  charge (~$0.00005). Total account usage is now $0.040559184 including
+  baseline, below $0.50. The agent didn't read the stored result itself; the
+  displayed label is as Jeremiah reported.
 
 ### Agent did (docs)
 
