@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuthProfileReady } from 'deepspace'
 import { calc2Policies } from '../core/calc2-content'
+import { Calc2OwnerComparison } from './Calc2OwnerComparison'
 import { Calc2OwnerReview } from './Calc2OwnerReview'
 
 type Policy = keyof typeof calc2Policies
@@ -64,6 +65,7 @@ export function Calc2PolicyReview() {
       </div>
       <p className="text-sm text-muted-foreground">{!isOwner && 'Preview only. '}Switching policies does not save anything or call a paid service. The TA makes the final recommendation.</p>
     </section>
+    {isOwner && <Calc2OwnerComparison key={`jev-${policy}`} policy={policy} />}
     {isOwner && <Calc2OwnerReview key={policy} policy={policy} />}
     </>
   )

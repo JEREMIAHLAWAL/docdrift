@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import publishedRaw from '../core/calc2-demo.v1.json?raw'
+import { CALC2_SAMPLE_SOURCE } from '../core/calc2-analysis'
 import type { ActionTools } from 'deepspace/worker'
 import { actions } from './index'
 
@@ -84,5 +86,52 @@ describe('Calc II recommendation actions', () => {
     integration.mockResolvedValueOnce({ success: true, data: { compiled: true, contentType: 'application/pdf', pdfBase64: 'bogus' } })
     expect(await call('exportCalc2Review', { policy: 'exam', confirmBilling: true })).toMatchObject({ success: false })
     expect(integration).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Calc II owner comparison action', () => {
+  const published = publishedRaw.replace(/\r\n/g, '\n')
+  const file = { type: 'file', encoding: 'base64', sha: CALC2_SAMPLE_SOURCE.blobSha, content: btoa(String.fromCharCode(...new TextEncoder().encode(published))) }
+  function routed(github: unknown = { success: true, data: file }) {
+    const h = harness()
+    h.integration.mockImplementation(async (endpoint: string) => (endpoint === 'github/get-repository-contents'
+      ? github : { success: true, data: { model: 'jev-1.13.0', answers: { recommendation: { type: 'choice', choice: 'revise_b' } } } }) as never)
+    return h
+  }
+
+  it.each([['someone-else', OWNER], [OWNER, '']])('denies non-owners and fails closed before any read or spend', async (userId, ownerId) => {
+    const { call, create, query, integration } = routed()
+    for (const name of ['analyzeCalc2', 'getCalc2Analysis']) {
+      expect(await call(name, { policy: 'exam', confirmBilling: true }, userId, ownerId)).toMatchObject({ success: false })
+    }
+    for (const method of [create, query, integration]) expect(method).not.toHaveBeenCalled()
+  })
+
+  it('requires explicit billing confirmation and a known policy', async () => {
+    const { call, integration } = routed()
+    for (const params of [{ policy: 'exam' }, { policy: 'exam', confirmBilling: 'true' }, { policy: 'other', confirmBilling: true }]) {
+      expect(await call('analyzeCalc2', params)).toMatchObject({ success: false })
+    }
+    expect(integration).not.toHaveBeenCalled()
+  })
+
+  it('records the attempt before spending, saves the result per policy, and rate-limits repeats', async () => {
+    const { call, create, integration } = routed()
+    expect(await call('getCalc2Analysis', { policy: 'takeHome' })).toMatchObject({ success: true, data: { analysis: null } })
+    const result = await call('analyzeCalc2', { policy: 'takeHome', confirmBilling: true })
+    expect(result).toMatchObject({ success: true, data: { analysis: { policy: 'takeHome', label: 'revise_b', sampleRef: CALC2_SAMPLE_SOURCE.ref } } })
+    expect(create.mock.invocationCallOrder[0]).toBeLessThan(integration.mock.invocationCallOrder[0])
+    expect(integration.mock.calls.map(([endpoint]) => endpoint)).toEqual(['github/get-repository-contents', 'cloudflare/jev'])
+    expect(await call('getCalc2Analysis', { policy: 'takeHome' })).toMatchObject({ success: true, data: { analysis: { label: 'revise_b' } } })
+    expect(await call('getCalc2Analysis', { policy: 'exam' })).toMatchObject({ success: true, data: { analysis: null } })
+    expect(await call('analyzeCalc2', { policy: 'exam', confirmBilling: true })).toMatchObject({ success: false, error: expect.stringMatching(/minute/i) })
+    expect(integration).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not call Jev or save anything when the sample fetch fails', async () => {
+    const { call, integration, rows } = routed({ success: false, error: 'upstream' })
+    expect(await call('analyzeCalc2', { policy: 'exam', confirmBilling: true })).toMatchObject({ success: false, error: expect.stringMatching(/GitHub/) })
+    expect(integration).toHaveBeenCalledTimes(1)
+    expect(Object.keys(rows).some((key) => key.startsWith('calc2_analyses/'))).toBe(false)
   })
 })

@@ -1,10 +1,14 @@
 import type { ActionHandler, ActionTools } from 'deepspace/worker'
 import type { Env } from '../../worker'
 import { buildCalc2PdfRequest, calc2, calc2Policies, calc2Choices, type Calc2Review } from '../core/calc2-content'
+import { CALC2_SAMPLE_SOURCE, runCalc2Analysis, type Calc2Analysis } from '../core/calc2-analysis'
+import { calc2JevLabels } from '../core/calc2-jev'
 
 type OwnerEnv = Pick<Env, 'OWNER_USER_ID'>
 const REVIEWS = 'calc2_reviews'
 const ATTEMPTS = 'calc2_pdf_attempts'
+const ANALYSES = 'calc2_analyses'
+const ANALYSIS_ATTEMPTS = 'calc2_analysis_attempts'
 const failure = (error: string) => ({ success: false as const, error })
 const reviewId = (policy: Calc2Review['policy']) => `${calc2.version}-${policy}`
 const isOwner = (userId: string, env: OwnerEnv) => !!env.OWNER_USER_ID && env.OWNER_USER_ID === userId
@@ -89,5 +93,74 @@ export const exportCalc2Review: ActionHandler<OwnerEnv> = async ({ userId, param
     }
   } finally {
     compiling = false
+  }
+}
+
+
+function readAnalysis(row: Record<string, unknown> | undefined, policy: Calc2Review['policy']): Calc2Analysis | null | undefined {
+  if (!row) return null
+  const { label, model, sampleVersion, sampleRef, sampleBlobSha, capturedAt } = row
+  const valid = row.policy === policy && calc2JevLabels.some((value) => value === label) && typeof model === 'string' && !!model
+    && sampleVersion === calc2.version && sampleRef === CALC2_SAMPLE_SOURCE.ref && sampleBlobSha === CALC2_SAMPLE_SOURCE.blobSha
+    && typeof capturedAt === 'string' && Number.isFinite(Date.parse(capturedAt))
+  return valid ? row as Calc2Analysis : undefined
+}
+
+async function loadAnalysis(tools: ActionTools, policy: Calc2Review['policy']) {
+  const result = await tools.query<Calc2Analysis>(ANALYSES, { where: { recordId: reviewId(policy) }, limit: 1 })
+  if (!result.success) return failure('Could not read the saved comparison.')
+  const analysis = readAnalysis(result.data.records[0]?.data, policy)
+  if (analysis === undefined) return failure('The saved comparison could not be read.')
+  return { success: true as const, data: { analysis } }
+}
+
+export const getCalc2Analysis: ActionHandler<OwnerEnv> = async ({ userId, params, tools, env }) => {
+  if (!isOwner(userId, env)) return failure('Only the app owner can access model comparisons.')
+  if (!isPolicy(params.policy)) return failure('Choose a valid tool policy.')
+  return loadAnalysis(tools, params.policy)
+}
+
+let analyzing = false
+/** Owner-only, explicitly confirmed, one attempt per minute: GitHub sample fetch → Jev. */
+export const analyzeCalc2: ActionHandler<OwnerEnv> = async ({ userId, params, tools, env }) => {
+  if (!isOwner(userId, env)) return failure('Only the app owner can run a billed comparison.')
+  if (params.confirmBilling !== true) return failure('Confirm the billed GitHub fetch and Jev comparison to continue.')
+  if (!isPolicy(params.policy)) return failure('Choose a valid tool policy.')
+  if (analyzing) return failure('A comparison is already running. Wait a minute before trying again.')
+  analyzing = true
+  try {
+    const policy = params.policy
+    const latest = await tools.query<{ attemptedAt: string }>(ANALYSIS_ATTEMPTS, { orderBy: 'attemptedAt', orderDir: 'desc', limit: 1 })
+    if (!latest.success) return failure('Could not verify the comparison cooldown.')
+    const now = new Date()
+    const previous = latest.data.records[0]?.data.attemptedAt
+    if (previous && now.getTime() - Date.parse(previous) < 60_000) return failure('Wait a minute between comparison attempts.')
+    const attempt = await tools.create(ANALYSIS_ATTEMPTS, { policy, attemptedAt: now.toISOString(), status: 'running', stage: '', error: '' })
+    if (!attempt.success) return failure('Could not record the comparison attempt; nothing was fetched.')
+
+    let finish: Record<string, string> = { status: 'failed', stage: 'compare', error: 'Interrupted.' }
+    try {
+      const outcome = await runCalc2Analysis((endpoint, body) => tools.integration(endpoint, body), policy, now)
+      if (!outcome.ok) {
+        finish = { status: 'failed', stage: outcome.stage, error: outcome.error.slice(0, 500) }
+        console.warn(`[analyzeCalc2] failed stage=${outcome.stage}: ${outcome.error}`)
+        return failure(outcome.stage === 'sample'
+          ? 'Could not fetch the versioned sample from GitHub; Jev was not called.'
+          : 'The Jev comparison failed. Earlier results are unchanged.')
+      }
+      const saved = await tools.create(ANALYSES, { ...outcome.analysis }, reviewId(policy))
+      if (!saved.success) { finish = { status: 'failed', stage: 'persist', error: 'Could not save comparison.' }; return failure('Could not save the comparison.') }
+      const verified = await loadAnalysis(tools, policy)
+      if (!verified.success || verified.data.analysis?.capturedAt !== outcome.analysis.capturedAt) {
+        finish = { status: 'failed', stage: 'persist', error: 'Read-back mismatch.' }
+        return failure('The comparison could not be verified after saving.')
+      }
+      finish = { status: 'succeeded', stage: '', error: '' }
+      return { success: true, data: { analysis: verified.data.analysis } }
+    } finally {
+      try { await tools.update(ANALYSIS_ATTEMPTS, attempt.data.recordId, finish) } catch { /* the attempt still counts against cooldown */ }
+    }
+  } finally {
+    analyzing = false
   }
 }

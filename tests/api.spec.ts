@@ -17,11 +17,13 @@ test.describe('API tests', () => {
   })
 
   test('signed-out callers cannot read, save, export, or invoke the compiler proxy', async ({ request }) => {
-    for (const name of ['getCalc2Review', 'saveCalc2Review', 'exportCalc2Review']) {
+    for (const name of ['getCalc2Review', 'saveCalc2Review', 'exportCalc2Review', 'getCalc2Analysis', 'analyzeCalc2']) {
       const res = await request.post(`/api/actions/${name}`, { data: { policy: 'exam', confirmBilling: true } })
       expect(res.status()).toBe(401)
     }
-    const res = await request.post('/api/integrations/latex-compiler/compile', { data: {} })
-    expect(res.status()).toBe(403)
+    for (const endpoint of ['latex-compiler/compile', 'github/get-repository-contents', 'cloudflare/jev']) {
+      const res = await request.post(`/api/integrations/${endpoint}`, { data: {} })
+      expect(res.status()).toBe(403)
+    }
   })
 })

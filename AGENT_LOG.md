@@ -355,3 +355,38 @@ Times are ET.
   $0.02873708918, below the $0.50 cap. This is one policy in a CLI probe,
   not a live comparison in the app. GitHub sample fetch needs the versioned
   file published on the existing repo. Neither integration is wired yet.
+
+## Session 4 — Tue 2026-11-24, from ~2:15 p.m.
+
+### Agent did (publish sample, wire GitHub + Jev)
+
+- Committed the Calc II pivot as `60c2689` and pushed it to `origin/main`.
+  That published `src/core/calc2-demo.v1.json` (blob `88f3771`). Before any
+  paid call, confirmed for free that the raw file at that commit hashes to
+  the same blob.
+- Added an owner-only comparison action pair: `getCalc2Analysis` and
+  `analyzeCalc2`. `analyzeCalc2` requires `confirmBilling: true`, records a
+  `running` attempt before spending, and waits one minute between attempts.
+  It fetches the sample through `github/get-repository-contents`, pinned to
+  commit `60c2689`. It rejects a different blob or content that differs from
+  the sample the UI renders, then stops before Jev. Otherwise it sends the
+  fetched sample and the selected policy to `cloudflare/jev`. The result is
+  validated, saved per policy, and read back before it is shown. The
+  comparison panel is separate from the TA save/export panel, so a failed
+  model call can't block saving or exporting.
+- 10 new unit tests use a provider double; 79 unit tests passed in total.
+  Type-check, lint, and build passed. All 11 Playwright smoke/API checks
+  passed against the running local server. Signed-out calls to the two new
+  actions returned 401. The GitHub and Jev integration proxies returned 403.
+  The signed-out policy switch still sends no action or integration requests.
+
+### Jeremiah verified
+
+- Local signed-in preview, AI-allowed take-home policy: ran one Jev
+  comparison. The app showed `Revise B · jev-1.13.0`, sample
+  `calc2-harmonic-v1` fetched from GitHub at commit `60c2689`
+  (blob `88f3771`), and the result persisted after reload. Live usage
+  showed one GitHub charge ($0.0026) and one Jev charge (~$0.00005).
+  Total account usage is now $0.03138736759, below the $0.50 cap. This is
+  the local app, not yet the hosted URL.
+

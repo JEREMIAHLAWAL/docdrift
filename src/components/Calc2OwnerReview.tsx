@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { getAuthToken } from 'deepspace'
 import { calc2Choices, type Calc2Review } from '../core/calc2-content'
 
-async function call<T>(action: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+export async function callOwnerAction<T>(action: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
   const token = await getAuthToken()
   if (!token) throw new Error('Sign in as the app owner first.')
   const response = await fetch(`/api/actions/${action}`, {
@@ -33,7 +33,7 @@ export function Calc2OwnerReview({ policy }: { policy: Calc2Review['policy'] }) 
   // earlier policy's draft, saved indicator, or billing confirmation.
   useEffect(() => {
     const abort = new AbortController()
-    void call<{ review: Calc2Review | null }>('getCalc2Review', { policy }, abort.signal).then(({ review }) => {
+    void callOwnerAction<{ review: Calc2Review | null }>('getCalc2Review', { policy }, abort.signal).then(({ review }) => {
       if (abort.signal.aborted) return
       setSaved(review)
       setChoice(review?.choice ?? '')
@@ -50,7 +50,7 @@ export function Calc2OwnerReview({ policy }: { policy: Calc2Review['policy'] }) 
     if (!ready || busy || !choice || !reason.trim()) return
     setBusy('save'); setError(''); setNotice(''); setConfirm(false)
     try {
-      const review = await call<Calc2Review>('saveCalc2Review', { policy, choice, reason })
+      const review = await callOwnerAction<Calc2Review>('saveCalc2Review', { policy, choice, reason })
       setSaved(review); setChoice(review.choice); setReason(review.reason)
       setNotice('Recommendation saved.')
     } catch (err) { setError(message(err)) } finally { setBusy(null) }
@@ -60,7 +60,7 @@ export function Calc2OwnerReview({ policy }: { policy: Calc2Review['policy'] }) 
     if (!saved || !confirm || edited || busy) return
     setBusy('export'); setError(''); setNotice(''); setConfirm(false)
     try {
-      const data = await call<{ pdfBase64: string }>('exportCalc2Review', { policy, confirmBilling: true })
+      const data = await callOwnerAction<{ pdfBase64: string }>('exportCalc2Review', { policy, confirmBilling: true })
       const bytes = Uint8Array.from(atob(data.pdfBase64), (char) => char.charCodeAt(0))
       const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
       const link = document.createElement('a')
