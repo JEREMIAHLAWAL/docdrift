@@ -8,7 +8,6 @@ import {
   decodeGithubFile,
   extractLegacyRender,
   extractTargetRender,
-  readFirecrawlMarkdown,
 } from './extract'
 
 const toBase64 = (text: string) => {
@@ -34,6 +33,15 @@ describe('decodeGithubFile', () => {
   ])('rejects %s', (_label, payload) => {
     expect(() => decodeGithubFile(payload)).toThrow(EvidenceError)
   })
+
+  it('tags errors with the caller’s stage', () => {
+    try {
+      decodeGithubFile(null, 'target')
+      throw new Error('expected a throw')
+    } catch (err) {
+      expect(err).toMatchObject({ stage: 'target' })
+    }
+  })
 })
 
 describe('extractLegacyRender (real pinned file)', () => {
@@ -58,14 +66,29 @@ describe('extractLegacyRender (real pinned file)', () => {
   })
 })
 
-describe('extractTargetRender', () => {
+// upgrade-guide.md is lines 355–440 of the real react.dev source at commit
+// d4b8243582c3710978f8c45ee7ec676246a69306, copied verbatim.
+describe('extractTargetRender (real react.dev source excerpt)', () => {
   const excerpt = extractTargetRender(guideMarkdown)
 
   it('extracts only the ReactDOM.render section and strips links', () => {
-    expect(excerpt).toMatch(/^`ReactDOM\.render` was deprecated in March 2022/)
+    expect(excerpt).toMatch(/^`ReactDOM\.render` was deprecated in March 2022 \(v18\.0\.0\)/)
     expect(excerpt).toContain('createRoot')
     expect(excerpt).not.toContain('ReactDOM.hydrate')
     expect(excerpt).not.toContain('](https://')
+  })
+
+  it('drops MDX heading ids and component tags but keeps code', () => {
+    expect(excerpt).not.toContain('{/*')
+    expect(excerpt).not.toMatch(/<\/?Note>/)
+    expect(excerpt).toContain('render(<App />, document.getElementById(\'root\'));')
+  })
+
+  it('keeps a whole-line JSX tag inside a code fence', () => {
+    const md = '#### Removed: `ReactDOM.render` {/*x*/}\n\n`ReactDOM.render` is gone.\n\n```js\n<App />\n```\n\n<Note>\n\nhi\n\n</Note>\n'
+    const out = extractTargetRender(md)
+    expect(out).toContain('<App />')
+    expect(out).not.toContain('<Note>')
   })
 
   it('does not match renderToString-style headings', () => {
@@ -75,23 +98,6 @@ describe('extractTargetRender', () => {
 
   it('rejects an empty section', () => {
     expect(() => extractTargetRender('#### Removed: `ReactDOM.render`\n\n#### Next\n')).toThrow(/empty/)
-  })
-})
-
-describe('readFirecrawlMarkdown', () => {
-  const url = 'https://react.dev/blog/2024/04/25/react-19-upgrade-guide'
-
-  it('returns markdown for the allowlisted URL', () => {
-    const payload = { data: { markdown: '# Guide', metadata: { statusCode: 200, sourceURL: url } } }
-    expect(readFirecrawlMarkdown(payload, url)).toBe('# Guide')
-  })
-
-  it.each([
-    ['no markdown', { data: {} }],
-    ['HTTP error page', { data: { markdown: 'Not found', metadata: { statusCode: 404 } } }],
-    ['redirected elsewhere', { data: { markdown: 'x', metadata: { sourceURL: 'https://evil.example' } } }],
-  ])('rejects %s', (_label, payload) => {
-    expect(() => readFirecrawlMarkdown(payload, url)).toThrow(EvidenceError)
   })
 })
 

@@ -14,15 +14,15 @@ const b64 = (text: string) => {
 }
 
 const okIntegrations: Record<string, unknown> = {
-  'github/get-repository-contents': {
+  legacy: {
     success: true,
     data: { type: 'file', encoding: 'base64', content: b64(legacyMarkdown), sha: 'blob123' },
   },
-  'firecrawl/scrape': {
+  target: {
     success: true,
-    data: { data: { markdown: guideMarkdown, metadata: { statusCode: 200, sourceURL: TARGET.url } } },
+    data: { type: 'file', encoding: 'base64', content: b64(guideMarkdown), sha: 'guide456' },
   },
-  'cloudflare/jev': {
+  jev: {
     success: true,
     data: {
       model: '@cf/jev-test',
@@ -37,6 +37,10 @@ const okIntegrations: Record<string, unknown> = {
     },
   },
 }
+
+/** Both sources use the GitHub endpoint; route fakes by repo. */
+const routeKey = (endpoint: string, body: unknown) =>
+  endpoint === 'cloudflare/jev' ? 'jev' : (body as { repo?: string }).repo === TARGET.repo ? 'target' : 'legacy'
 
 /** In-memory stand-in for the RecordRoom tools; records every integration call. */
 function fakeTools(integrationResponses = okIntegrations) {
@@ -68,9 +72,9 @@ function fakeTools(integrationResponses = okIntegrations) {
       )
       return ok({ records: rows.slice(0, 1), count: rows.length })
     },
-    async integration(endpoint: string) {
+    async integration(endpoint: string, body: unknown) {
       calls.push(endpoint)
-      return integrationResponses[endpoint]
+      return integrationResponses[routeKey(endpoint, body)]
     },
   } as unknown as ActionTools
   return { tools, db, calls }
@@ -103,10 +107,12 @@ describe('refreshEvidence action', () => {
     const { tools, db } = fakeTools()
     await refreshEvidence(ctx(tools, OWNER, { confirmBilling: true }))
     const before = structuredClone(db.evidence_snapshots)
-    // Move the first attempt outside the cooldown, then break Firecrawl.
+    // Move the first attempt outside the cooldown, then break the target fetch.
     db.refresh_attempts[0].data.attemptedAt = '2000-01-01T00:00:00.000Z'
-    ;(tools as unknown as { integration: (e: string) => Promise<unknown> }).integration = async (e) =>
-      e === 'firecrawl/scrape' ? { success: false, error: 'Upstream timeout', code: 'upstream_timeout' } : okIntegrations[e]
+    ;(tools as unknown as { integration: (e: string, b: unknown) => Promise<unknown> }).integration = async (e, b) =>
+      routeKey(e, b) === 'target'
+        ? { success: false, error: 'Upstream timeout', code: 'upstream_timeout' }
+        : okIntegrations[routeKey(e, b)]
 
     const res = await refreshEvidence(ctx(tools, OWNER, { confirmBilling: true }))
     expect(res).toMatchObject({ success: false, error: expect.stringContaining('upstream_timeout') })

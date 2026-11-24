@@ -31,6 +31,10 @@ export const snapshotsSchema: CollectionSchema = {
     { name: 'probabilities', storage: 'text', interpretation: { kind: 'json' } },
     { name: 'confidence', storage: 'number', interpretation: 'plain' },
     text('model'),
+    // Added after the first deploy, when the target moved from Firecrawl to
+    // GitHub. Additive only, so the SDK migrates it automatically.
+    text('targetRef'),
+    text('targetBlobSha'),
   ],
   permissions: publicReadOnly,
 }

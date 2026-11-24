@@ -26,23 +26,26 @@ export interface GithubFile {
 }
 
 /** Decode a base64 GitHub file payload as UTF-8 text. */
-export function decodeGithubFile(payload: unknown): { text: string; blobSha: string | null } {
+export function decodeGithubFile(
+  payload: unknown,
+  stage: 'legacy' | 'target' = 'legacy',
+): { text: string; blobSha: string | null } {
   if (!payload || typeof payload !== 'object') {
-    throw new EvidenceError('legacy', 'GitHub returned no file payload.')
+    throw new EvidenceError(stage, 'GitHub returned no file payload.')
   }
   const file = payload as Partial<GithubFile>
   if (file.type !== undefined && file.type !== 'file') {
-    throw new EvidenceError('legacy', `Expected a file but GitHub returned type "${String(file.type)}".`)
+    throw new EvidenceError(stage, `Expected a file but GitHub returned type "${String(file.type)}".`)
   }
   if (file.encoding !== 'base64' || typeof file.content !== 'string' || file.content.length === 0) {
-    throw new EvidenceError('legacy', 'GitHub payload is missing base64 file content.')
+    throw new EvidenceError(stage, 'GitHub payload is missing base64 file content.')
   }
   let bytes: Uint8Array
   try {
     const binary = atob(file.content.replace(/\s+/g, ''))
     bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0))
   } catch {
-    throw new EvidenceError('legacy', 'GitHub file content is not valid base64.')
+    throw new EvidenceError(stage, 'GitHub file content is not valid base64.')
   }
   const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes)
   return { text, blobSha: typeof file.sha === 'string' ? file.sha : null }
@@ -98,9 +101,24 @@ function unlink(text: string): string {
 
 const TARGET_HEADING = /removed:\s*reactdom\.render\b/i
 
+/** Drop react.dev MDX heading ids (`{/*removed-reactdom-render*\/}`). */
+const stripHeadingId = (heading: string) => heading.replace(/\s*\{\/\*[\s\S]*?\*\/\}\s*$/, '')
+
+/** Drop lines that are only an MDX component tag (`<Note>`), outside code fences. */
+function stripMdxTagLines(text: string): string {
+  let inFence = false
+  return text
+    .split('\n')
+    .filter((l) => {
+      if (/^\s*```/.test(l)) inFence = !inFence
+      return inFence || !/^\s*<\/?[A-Z][A-Za-z]*\s*\/?>\s*$/.test(l)
+    })
+    .join('\n')
+}
+
 /**
  * React 19 Upgrade Guide: the "Removed: `ReactDOM.render`" section from the
- * scraped markdown, up to the next heading of the same or higher level.
+ * react.dev markdown source, up to the next heading of the same or higher level.
  */
 export function extractTargetRender(markdown: string): string {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
@@ -108,7 +126,7 @@ export function extractTargetRender(markdown: string): string {
   let level = 6
   for (let i = 0; i < lines.length; i++) {
     const m = /^(#{2,6})\s+(.*)$/.exec(lines[i])
-    if (m && TARGET_HEADING.test(unlink(m[2]).replace(/`/g, ''))) {
+    if (m && TARGET_HEADING.test(unlink(stripHeadingId(m[2])).replace(/`/g, ''))) {
       start = i
       level = m[1].length
       break
@@ -118,27 +136,10 @@ export function extractTargetRender(markdown: string): string {
     throw new EvidenceError('target', 'The upgrade guide has no "Removed: ReactDOM.render" section.')
   }
   const end = sectionEnd(lines, start, level)
-  const excerpt = boundExcerpt(unlink(lines.slice(start + 1, end).join('\n')))
+  const excerpt = boundExcerpt(unlink(stripMdxTagLines(lines.slice(start + 1, end).join('\n'))))
   if (excerpt.length < 40 || !/ReactDOM\.render/.test(excerpt)) {
     throw new EvidenceError('target', 'The upgrade guide section is empty or unrecognised.')
   }
   return excerpt
 }
 
-/** Firecrawl scrape payload: `data.markdown` plus page metadata. */
-export function readFirecrawlMarkdown(payload: unknown, expectedUrl: string): string {
-  const root = (payload ?? {}) as { data?: unknown }
-  const data = (root.data ?? {}) as { markdown?: unknown; metadata?: Record<string, unknown> }
-  if (typeof data.markdown !== 'string' || data.markdown.trim().length === 0) {
-    throw new EvidenceError('target', 'Firecrawl returned no markdown for the upgrade guide.')
-  }
-  const status = data.metadata?.statusCode
-  if (typeof status === 'number' && (status < 200 || status >= 300)) {
-    throw new EvidenceError('target', `The upgrade guide responded with HTTP ${status}.`)
-  }
-  const source = data.metadata?.sourceURL ?? data.metadata?.url
-  if (typeof source === 'string' && !source.startsWith(expectedUrl)) {
-    throw new EvidenceError('target', `Firecrawl scraped an unexpected URL: ${source}`)
-  }
-  return data.markdown
-}

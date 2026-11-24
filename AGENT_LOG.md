@@ -177,3 +177,86 @@ Times are ET.
   Jeremiah's budget approval.
 - Hosted owner refresh and save.
 - Hosted signed-out view of a real snapshot.
+
+---
+
+## Session 2 — Tue 2026-11-24, from ~10:15 a.m.
+
+### Agent did (real provider probes, within the $0.50 cap)
+
+- The CLI session was still valid (`auth whoami` ok), so no re-login was
+  needed for the probes. Starting usage: 0.0022836 credits used. DeepSpace
+  credits are 1¢ units: 0.26 credits = the $0.0026 GitHub charge.
+- **`github/get-repository-contents`** (pinned legacy file): ok. The `data`
+  is a standard contents-API file object (`type: file`, `encoding: base64`,
+  `sha`, `size: 10600`). The decoded bytes are identical to
+  `fixtures/legacy-reference-react-dom.md`, and the git blob SHA recomputes
+  to the returned `sha`. `decodeGithubFile` needed no change. $0.0026.
+- **`firecrawl/scrape`**: **failed upstream.** It returned a
+  `upstream_provider_error`, wrapping Firecrawl `402 insufficient_credits`
+  ("your team has 0 left"). That is DeepSpace's shared Firecrawl account,
+  not ours. `billing: released`: a **$0.65 hold** was charged, then settled
+  back to $0. A single scrape's hold is larger than the whole $0.50 cap. The
+  response also warned that the platform still calls Firecrawl `/v1/scrape`
+  (deprecated).
+- **`cloudflare/jev`**: ok. The request was built with `buildJevRequest`
+  from the real legacy excerpt plus the then-provisional target fixture
+  (shape probe only). It returned `{model: "jev-1.13.0", answers:
+  {relationship: {type: "choice", choice: "conflicts", probabilities:
+  {agrees: 0.08, conflicts: 0.92, inconclusive: 0}, confidence: 0.88}},
+  usage: {input_tokens: 769, ...}}`. `parseJevResponse` accepts it
+  unchanged. $0.000044.
+- **Spend after the probes: $0.00264 of $0.50.**
+
+### Jeremiah decided
+
+- Firecrawl was blocked upstream. Jeremiah chose to fetch the React 19
+  Upgrade Guide's **markdown source** from `reactjs/react.dev` through the
+  already-verified GitHub integration. It tracks `main` and records the blob
+  SHA. Firecrawl is dropped, and the README will say why.
+
+### Agent did (switch target source)
+
+- `case.ts`: `TARGET` now holds the owner, repo, path and ref (`main`) of
+  `src/content/blog/2024/04/25/react-19-upgrade-guide.md`. The card still
+  links to the rendered react.dev page anchor.
+- `extract.ts`:
+  - `decodeGithubFile` takes a stage, so target failures are reported as
+    `target`, not `legacy`.
+  - `extractTargetRender` strips MDX heading IDs (`{/*…*/}`) and drops
+    whole-line MDX component tags such as `<Note>`, but not inside code
+    fences.
+  - `readFirecrawlMarkdown` is removed.
+- `refresh.ts`: the pipeline is now GitHub (legacy) → GitHub (target) →
+  Jev, still stopping at the first failure. Snapshots gain `targetRef` and
+  `targetBlobSha`. The schema columns are added at the end (additive; the
+  SDK auto-migrates them; no snapshot rows exist yet).
+- **Fixture replaced:** `fixtures/upgrade-guide.md` is now lines 355–440 of
+  the real react.dev source at commit `d4b82435…`, copied verbatim. It is no
+  longer hand-written. Today's `main` is byte-identical to that commit
+  (checked via raw.githubusercontent, free).
+- UI copy: "Scraped" became "Fetched … from react.dev main, blob …", and the
+  refresh text's cost estimate is now about $0.006 per refresh.
+- Tests were updated for the two-GitHub-call pipeline: fakes are routed by
+  repo, and there are new tests for target-stage errors, MDX stripping and
+  the code-fence guard.
+- **Checks:**
+  - `vitest`: 58/58 passed. Four Firecrawl tests were removed and four new
+    ones added.
+  - `tsc --noEmit`: clean.
+  - `eslint src`: clean.
+  - `npm run build`: passed.
+  - `npm run test`: 8/8 on the second run. The first run hit the known
+    60 s cold-start timeout.
+
+### Jeremiah verified
+
+- *(none yet)*
+
+### Not yet verified by anyone
+
+- That `github/get-repository-contents` accepts `ref: "main"` for react.dev
+  through the hosted proxy. This first runs in the hosted owner refresh.
+- Hosted owner refresh and save; that `probabilities` round-trips through
+  the `json` column.
+- Hosted signed-out view of a real snapshot.

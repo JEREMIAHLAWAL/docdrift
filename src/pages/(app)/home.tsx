@@ -81,7 +81,9 @@ export default function CasePage() {
                 <ExcerptCard title="Legacy instruction" label={snapshot.legacyLabel} url={snapshot.legacySourceUrl}
                   meta={`Pinned commit ${snapshot.legacyRef.slice(0, 12)}`} text={snapshot.legacyExcerpt} />
                 <ExcerptCard title="React 19 guidance" label={snapshot.targetLabel} url={snapshot.targetSourceUrl}
-                  meta={`Scraped ${fmt(snapshot.capturedAt)}`} text={snapshot.targetExcerpt} />
+                  meta={`Fetched ${fmt(snapshot.capturedAt)} from react.dev ${snapshot.targetRef || 'main'}${
+                    snapshot.targetBlobSha ? `, blob ${snapshot.targetBlobSha.slice(0, 12)}` : ''}`}
+                  text={snapshot.targetExcerpt} />
               </section>
               <Suggestion snapshot={snapshot} />
               <ReviewPanel isOwner={!!isOwner} snapshotId={snapshotRow.recordId} saved={review}
@@ -142,8 +144,8 @@ function OwnerRefresh({ running }: { running: boolean }) {
     <section className="flex flex-col gap-2 rounded-lg border border-border p-4" aria-label="Owner refresh">
       <p className="text-sm font-medium">Owner: refresh evidence</p>
       <p className="text-xs text-muted-foreground">
-        Runs GitHub (pinned file), Firecrawl (upgrade guide), and Cloudflare Jev. Billed to your DeepSpace credits,
-        roughly $0.01 per refresh. Limited to one per minute.
+        Runs GitHub twice (pinned legacy file, upgrade guide source) and Cloudflare Jev. Billed to your DeepSpace
+        credits, about $0.006 per refresh. Limited to one per minute.
       </p>
       {!confirming ? (
         <Button size="sm" variant="outline" className="self-start" disabled={busy || running} onClick={() => setConfirming(true)}>

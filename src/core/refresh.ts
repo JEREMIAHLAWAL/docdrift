@@ -20,7 +20,6 @@ import {
   decodeGithubFile,
   extractLegacyRender,
   extractTargetRender,
-  readFirecrawlMarkdown,
 } from './extract'
 
 export type IntegrationResult =
@@ -40,6 +39,8 @@ export interface SnapshotData {
   legacyExcerpt: string
   targetLabel: string
   targetSourceUrl: string
+  targetRef: string
+  targetBlobSha: string
   targetExcerpt: string
   suggestion: Relationship
   probabilities: Record<Relationship, number>
@@ -100,8 +101,9 @@ async function call(
 }
 
 /**
- * GitHub → Firecrawl → Jev, in that order, stopping at the first failure so
- * a broken source never spends on the later calls or reaches the classifier.
+ * GitHub (legacy) → GitHub (target) → Jev, in that order, stopping at the
+ * first failure so a broken source never spends on the later calls or
+ * reaches the classifier.
  */
 export async function runRefresh(integration: CallIntegration, now: Date): Promise<RefreshOutcome> {
   try {
@@ -114,12 +116,14 @@ export async function runRefresh(integration: CallIntegration, now: Date): Promi
     const legacyFile = decodeGithubFile(github)
     const legacyExcerpt = extractLegacyRender(legacyFile.text)
 
-    const scrape = await call(integration, 'target', 'firecrawl/scrape', {
-      url: TARGET.url,
-      formats: ['markdown'],
-      onlyMainContent: true,
+    const guide = await call(integration, 'target', 'github/get-repository-contents', {
+      owner: TARGET.owner,
+      repo: TARGET.repo,
+      path: TARGET.path,
+      ref: TARGET.ref,
     })
-    const targetExcerpt = extractTargetRender(readFirecrawlMarkdown(scrape, TARGET.url))
+    const targetFile = decodeGithubFile(guide, 'target')
+    const targetExcerpt = extractTargetRender(targetFile.text)
 
     const jev = await call(integration, 'classify', 'cloudflare/jev', buildJevRequest(legacyExcerpt, targetExcerpt))
     const classification = parseJevResponse(jev)
@@ -136,6 +140,8 @@ export async function runRefresh(integration: CallIntegration, now: Date): Promi
         legacyExcerpt,
         targetLabel: TARGET.label,
         targetSourceUrl: TARGET_SOURCE_URL,
+        targetRef: TARGET.ref,
+        targetBlobSha: targetFile.blobSha ?? '',
         targetExcerpt,
         ...classification,
       },

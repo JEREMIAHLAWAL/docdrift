@@ -21,13 +21,24 @@ export const LEGACY = {
 export const LEGACY_SOURCE_URL =
   `https://github.com/${LEGACY.owner}/${LEGACY.repo}/blob/${LEGACY.ref}/${LEGACY.path}#render`
 
-/** Upgrade target: React 19's official Upgrade Guide (the only allowlisted URL). */
+/**
+ * Upgrade target: React 19's official Upgrade Guide, read as its markdown
+ * source in the react.dev repo. It tracks `main` (not a pinned commit) so a
+ * refresh can pick up edits; the returned blob SHA records which version was
+ * read. Fetched through the same GitHub integration as the legacy file,
+ * because the platform's Firecrawl scrape was unavailable (see README).
+ */
 export const TARGET = {
-  label: 'React 19 Upgrade Guide (react.dev, published 2024-04-25)',
+  label: 'React 19 Upgrade Guide (react.dev source, published 2024-04-25)',
+  owner: 'reactjs',
+  repo: 'react.dev',
+  path: 'src/content/blog/2024/04/25/react-19-upgrade-guide.md',
+  ref: 'main',
   url: 'https://react.dev/blog/2024/04/25/react-19-upgrade-guide',
   anchor: '#removed-reactdom-render',
 } as const
 
+/** The rendered page a reader would open. */
 export const TARGET_SOURCE_URL = `${TARGET.url}${TARGET.anchor}`
 
 /** Hard cap on each displayed and classified excerpt. */

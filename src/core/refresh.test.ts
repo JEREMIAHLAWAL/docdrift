@@ -24,20 +24,18 @@ const jevOk = {
   usage: { input_tokens: 400, output_tokens: 1, totalTokens: 400 },
 }
 
-function fakeIntegrations(overrides: Partial<Record<string, unknown>> = {}) {
+/** Both sources use the GitHub endpoint, so fakes are keyed `legacy` / `target` / `jev` by repo. */
+const routeKey = (endpoint: string, body: unknown) =>
+  endpoint === 'cloudflare/jev' ? 'jev' : (body as { repo?: string }).repo === TARGET.repo ? 'target' : 'legacy'
+
+function fakeIntegrations(overrides: Partial<Record<'legacy' | 'target' | 'jev', unknown>> = {}) {
   const responses: Record<string, unknown> = {
-    'github/get-repository-contents': {
-      success: true,
-      data: { type: 'file', encoding: 'base64', content: b64(legacyMarkdown), sha: 'blob123' },
-    },
-    'firecrawl/scrape': {
-      success: true,
-      data: { data: { markdown: guideMarkdown, metadata: { statusCode: 200, sourceURL: TARGET.url } }, creditsUsed: 1 },
-    },
-    'cloudflare/jev': { success: true, data: jevOk },
+    legacy: { success: true, data: { type: 'file', encoding: 'base64', content: b64(legacyMarkdown), sha: 'blob123' } },
+    target: { success: true, data: { type: 'file', encoding: 'base64', content: b64(guideMarkdown), sha: 'guide456' } },
+    jev: { success: true, data: jevOk },
     ...overrides,
   }
-  const fn = vi.fn<CallIntegration>(async (endpoint) => responses[endpoint] as never)
+  const fn = vi.fn<CallIntegration>(async (endpoint, body) => responses[routeKey(endpoint, body)] as never)
   return fn
 }
 
@@ -49,17 +47,19 @@ describe('runRefresh', () => {
     const out = await runRefresh(call, NOW)
     expect(call.mock.calls.map((c) => c[0])).toEqual([
       'github/get-repository-contents',
-      'firecrawl/scrape',
+      'github/get-repository-contents',
       'cloudflare/jev',
     ])
     expect(call.mock.calls[0][1]).toEqual({ owner: LEGACY.owner, repo: LEGACY.repo, path: LEGACY.path, ref: LEGACY.ref })
-    expect(call.mock.calls[1][1]).toMatchObject({ url: TARGET.url })
+    expect(call.mock.calls[1][1]).toEqual({ owner: TARGET.owner, repo: TARGET.repo, path: TARGET.path, ref: TARGET.ref })
     expect(out.ok).toBe(true)
     if (!out.ok) return
     expect(out.snapshot).toMatchObject({
       capturedAt: NOW.toISOString(),
       legacyRef: LEGACY.ref,
       legacyBlobSha: 'blob123',
+      targetRef: 'main',
+      targetBlobSha: 'guide456',
       suggestion: 'conflicts',
       confidence: 0.9,
       model: '@cf/jev-test',
@@ -74,9 +74,9 @@ describe('runRefresh', () => {
     expect(call.mock.calls[2][1]).toEqual(buildJevRequest(out.snapshot.legacyExcerpt, out.snapshot.targetExcerpt))
   })
 
-  it('stops at a GitHub failure without spending on Firecrawl or Jev', async () => {
+  it('stops at a legacy GitHub failure without spending on the target or Jev', async () => {
     const call = fakeIntegrations({
-      'github/get-repository-contents': { success: false, error: 'Not Found', code: 'upstream_404' },
+      legacy: { success: false, error: 'Not Found', code: 'upstream_404' },
     })
     const out = await runRefresh(call, NOW)
     expect(out).toEqual({ ok: false, stage: 'legacy', error: expect.stringContaining('upstream_404') })
@@ -85,16 +85,21 @@ describe('runRefresh', () => {
 
   it('never classifies when the target section is missing', async () => {
     const call = fakeIntegrations({
-      'firecrawl/scrape': { success: true, data: { data: { markdown: '# A different page' } } },
+      target: { success: true, data: { type: 'file', encoding: 'base64', content: b64('# A different page'), sha: 'x' } },
     })
     const out = await runRefresh(call, NOW)
     expect(out).toMatchObject({ ok: false, stage: 'target' })
     expect(call.mock.calls.map((c) => c[0])).not.toContain('cloudflare/jev')
   })
 
+  it('reports a bad target payload as a target-stage failure, not legacy', async () => {
+    const call = fakeIntegrations({ target: { success: true, data: { type: 'dir' } } })
+    expect(await runRefresh(call, NOW)).toMatchObject({ ok: false, stage: 'target' })
+  })
+
   it('reports insufficient credits from the proxy as a failure', async () => {
     const call = fakeIntegrations({
-      'cloudflare/jev': { success: false, error: 'Not enough credits', code: 'insufficient_credits' },
+      jev: { success: false, error: 'Not enough credits', code: 'insufficient_credits' },
     })
     expect(await runRefresh(call, NOW)).toMatchObject({ ok: false, stage: 'classify' })
   })

@@ -2,7 +2,7 @@
  * DocDrift server actions. Both are owner-only; both run RBAC-off, so every
  * input is validated here before it touches a record or a billed integration.
  *
- *   refreshEvidence  GitHub → Firecrawl → Jev, then save snapshot + attempt.
+ *   refreshEvidence  GitHub (legacy) → GitHub (target) → Jev, then save snapshot + attempt.
  *   saveReview       Save the owner's keep/revise/needs_review decision
  *                    against an existing snapshot id.
  */
