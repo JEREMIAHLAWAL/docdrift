@@ -434,3 +434,34 @@ Times are ET.
   prototype code). Git secret scan of tracked files found no tokens;
   `.dev.vars`, `dist` and `.deepspace` are git-ignored.
 
+### Agent did (prototype cleanup, after reading the portal brief)
+
+- The brief scores "code is understandable", so Jeremiah approved removing
+  the unused DocDrift prototype code. Commit `43468c3` removes:
+  - `refreshEvidence` and `saveReview`;
+  - `src/core/{case,extract,classify,refresh,view}.ts`, their fixtures, and
+    52 prototype-only tests.
+- Moved the GitHub decoder and the integration-caller type into
+  `src/core/integration.ts`. The decoder now rejects invalid UTF-8; 6 new
+  tests cover it.
+- The DeepSpace docs say the SDK doesn't remove schema elements, and the
+  hosted app still holds prototype rows. So the three old collections stay
+  declared in `src/schemas/legacy-schema.ts`, but access changed from public
+  read to deny-all. Removed the unused Firecrawl billing entry, which still
+  defaults to developer billing, so the browser proxy keeps refusing it.
+  Set the `index.html` title to the app name.
+- Type-check, lint, 33 unit tests, and build passed. The 11 Playwright
+  smoke/API checks passed against a restarted local dev server (port 5173)
+  and again against the hosted URL after deploy.
+- Deployed from a clean tree: release `rel_01M87ZYS1K38N8Q8KT6FKMTCR6`,
+  `dirty: false`. `/.dev.vars` returns 404. All five Calc II actions and the
+  removed `refreshEvidence` return 401 when signed out. No error logs.
+- No new integration charges. Account usage rose by about $0.00003 with no
+  matching integration entry, presumably platform usage; the total is
+  $0.040591722.
+
+### Jeremiah verified
+
+- Hosted, signed in, after the cleanup deploy: the saved calculator-exam
+  recommendation and the saved take-home Jev result both still load.
+

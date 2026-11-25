@@ -45,6 +45,8 @@ SQLite-backed RecordRooms.
   Jev request and the PDF are all built from it.
 - `src/core/calc2-content.ts`: the policy texts, the hand-authored preview
   analysis, and the LaTeX document builder, which escapes all user text.
+- `src/core/integration.ts`: the injected integration-caller type and a
+  strict decoder for GitHub file payloads.
 - `src/core/calc2-analysis.ts`: `runCalc2Analysis`, the GitHub fetch and Jev
   comparison, with the integration caller injected so tests make no paid
   calls.
@@ -90,12 +92,13 @@ himself; details are in [`AGENT_LOG.md`](AGENT_LOG.md).
 | Check | Result |
 |---|---|
 | Type-check, lint, build | Pass |
-| Unit tests (vitest, provider doubles) | 79 pass |
+| Unit tests (vitest, provider doubles) | 33 pass |
 | Playwright smoke/API tests against the live site | 11 pass: the signed-out policy switch sends no action or integration request, the 5 actions return 401 when signed out, and the 3 integration proxies return 403 |
 | Live site, signed out: policy switch changes the suggestion, nothing saved or billed | Jeremiah verified |
 | Live site, signed in: save → reload → export → open the downloaded PDF, which contains the saved recommendation | Jeremiah verified |
 | Local app, signed in: GitHub fetch + Jev comparison shows `Revise B`, fetched at commit `60c2689`, and persists after reload | Jeremiah verified |
 | Live site, signed in: GitHub fetch + Jev comparison | Jeremiah verified (one run; logs and usage show one GitHub and one Jev charge) |
+| Live site after removing the prototype code: saved recommendation and saved Jev result still load | Jeremiah verified |
 
 Total account usage, including the pre-project baseline and the React
 prototype probes, is **$0.0406**, under the $0.50 budget.
@@ -119,11 +122,12 @@ prototype probes, is **$0.0406**, under the $0.50 budget.
 
 ## Known gaps and history
 
-- **Prototype code still in the repo:** this repo started as **DocDrift**, a
-  React-documentation drift checker. Its owner-only `refreshEvidence` and
-  `saveReview` actions and `src/core/{case,extract,classify,refresh,view}.ts`
-  are still in the repo. The current UI doesn't use them; they're kept for
-  the history in `AGENT_LOG.md`.
+- **Prototype history:** this repo started as **DocDrift**, a
+  React-documentation drift checker. Its code was removed in `43468c3`; the
+  history is in Git and `AGENT_LOG.md`. The deployed app still holds that
+  prototype's rows, and the SDK doesn't drop collections, so
+  `src/schemas/legacy-schema.ts` keeps the three collections declared. All
+  roles are denied access, and nothing in the app reads or writes them.
 - **Firecrawl:** the platform's shared Firecrawl account was out of credits
   (`402 insufficient_credits`) during the React prototype, and it was not
   retried. The Calc II app doesn't use it.
